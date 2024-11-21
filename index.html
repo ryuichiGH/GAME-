@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ごおちゃんのゲーム時間</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            transition: background-color 0.5s ease;
+        }
+
+        #time-display {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+
+        button {
+            font-size: 1rem;
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #start-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        #pause-btn {
+            background-color: #f0ad4e;
+            color: white;
+        }
+
+        #reset-btn {
+            background-color: #d9534f;
+            color: white;
+        }
+
+        #add-time-section {
+            margin-top: 20px;
+        }
+
+        input {
+            font-size: 1rem;
+            padding: 5px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="time-display">000:00:00</div>
+    <div>
+        <button id="start-btn">スタート</button>
+        <button id="pause-btn">一時停止</button>
+        <button id="reset-btn">リセット</button>
+    </div>
+    <div id="add-time-section">
+        <label for="minutes-input">追加する分数：</label>
+        <input type="number" id="minutes-input" placeholder="分数を入力" min="0" />
+        <label for="password-input">パスワード：</label>
+        <input type="password" id="password-input" placeholder="パスワードを入力" />
+        <button id="add-time-btn">時間を追加</button>
+    </div>
+    <audio id="alert-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+    <script>
+        let timeInSeconds = 0; // 初期値を 0 秒に設定
+        let timerInterval = null;
+
+        const timeDisplay = document.getElementById("time-display");
+        const startBtn = document.getElementById("start-btn");
+        const pauseBtn = document.getElementById("pause-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const passwordInput = document.getElementById("password-input");
+        const minutesInput = document.getElementById("minutes-input");
+        const addTimeBtn = document.getElementById("add-time-btn");
+        const alertSound = document.getElementById("alert-sound");
+
+        // localStorageから値を復元
+        function loadFromStorage() {
+            const storedTime = localStorage.getItem("timeInSeconds");
+            if (storedTime) {
+                timeInSeconds = parseInt(storedTime, 10);
+            }
+            updateDisplay();
+        }
+
+        // localStorageに現在の時間を保存
+        function saveToStorage() {
+            localStorage.setItem("timeInSeconds", timeInSeconds);
+        }
+
+        // Update the timer display
+        function updateDisplay() {
+            const hours = Math.floor(timeInSeconds / 3600);
+            const minutes = Math.floor((timeInSeconds % 3600) / 60);
+            const seconds = timeInSeconds % 60;
+            timeDisplay.textContent = `${hours.toString().padStart(3, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+        }
+
+        // Start the timer
+        startBtn.addEventListener("click", () => {
+            if (timerInterval) return; // 既にタイマーが動いている場合は何もしない
+
+            timerInterval = setInterval(() => {
+                if (timeInSeconds > 0) {
+                    timeInSeconds--;
+                    updateDisplay();
+                    saveToStorage(); // 現在の時間を保存
+                }
+
+                if (timeInSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null; // タイマーを停止
+                    timeDisplay.classList.add("alert");
+                    document.body.style.backgroundColor = "red"; // 画面全体を赤くする
+                    alertSound.play();
+                }
+            }, 1000);
+        });
+
+        // Pause the timer
+        pauseBtn.addEventListener("click", () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        });
+
+        // Reset the timer
+        resetBtn.addEventListener("click", () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timeInSeconds = 0; // タイマーをリセット
+            updateDisplay();
+            saveToStorage(); // リセットされた値を保存
+            timeDisplay.classList.remove("alert");
+            document.body.style.backgroundColor = ""; // 背景色を元に戻す
+        });
+
+        // Add time with password
+        addTimeBtn.addEventListener("click", () => {
+            if (passwordInput.value === "9999") {
+                const additionalMinutes = parseInt(minutesInput.value, 10);
+                if (!isNaN(additionalMinutes) && additionalMinutes > 0) {
+                    timeInSeconds += additionalMinutes * 60; // 分を秒に変換して追加
+                    updateDisplay();
+                    saveToStorage(); // 新しい時間を保存
+                    alert("時間が追加されました！");
+                } else {
+                    alert("有効な分数を入力してください！");
+                }
+            } else {
+                alert("パスワードが間違っています！");
+            }
+            passwordInput.value = "";
+            minutesInput.value = "";
+        });
+
+        // ページ読み込み時にタイマー状態を復元
+        window.addEventListener("load", () => {
+            loadFromStorage();
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
